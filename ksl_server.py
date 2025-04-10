@@ -8,6 +8,7 @@ Original file is located at
 """
 
 import multiprocessing
+
 print("Number of cpu : ", multiprocessing.cpu_count())
 
 # Commented out IPython magic to ensure Python compatibility.
@@ -21,15 +22,11 @@ import cloudinary.uploader
 import cloudinary.api
 import json
 
-CLOUDINARY_URL="cloudinary://964296369431727:L7k8fvgXTrRqFl3_uZlbWbf1d8o@dr90baby"
-config = cloudinary.config(
-  cloud_name = "*****",
-  api_key = "*****",
-  api_secret = "***"
-)
+CLOUDINARY_URL = "cloudinary://******:************"
+config = cloudinary.config(cloud_name="*****", api_key="*****", api_secret="***")
 
 from google.colab import drive
-from flask import Flask, flash, request, redirect, url_for, render_template,jsonify
+from flask import Flask, flash, request, redirect, url_for, render_template, jsonify
 from flask_cors import CORS, cross_origin
 import urllib.request
 from werkzeug.utils import secure_filename
@@ -40,17 +37,18 @@ import cv2
 from collections import deque
 import uuid
 
-drive.mount('/content/drive')
+drive.mount("/content/drive")
 
-templates_dir = '/content/drive/MyDrive/KSL/WebApp/build'
-model_file = '/content/drive/MyDrive/KSL/Models/model.h5'
-upload_folder = '/content/drive/MyDrive/KSL/WebApp/videos/'
-IMAGE_HEIGHT , IMAGE_WIDTH = 270, 270
+templates_dir = "/content/drive/MyDrive/KSL/WebApp/build"
+model_file = "/content/drive/MyDrive/KSL/Models/model.h5"
+upload_folder = "/content/drive/MyDrive/KSL/WebApp/videos/"
+IMAGE_HEIGHT, IMAGE_WIDTH = 270, 270
 SEQUENCE_LENGTH = 8
-CLASSES_LIST = ["work", "come", "go", "home","hello"]
+CLASSES_LIST = ["work", "come", "go", "home", "hello"]
 
 # Load Model
 model = tf.keras.models.load_model(model_file)
+
 
 def filter_dicts_by_previous_key(list_of_dicts):
     filtered_list = []
@@ -65,16 +63,22 @@ def filter_dicts_by_previous_key(list_of_dicts):
 
     return filtered_list
 
+
 def predictVideo(videoPath, outputPath, SEQUENCE_LENGTH):
     sentence_analytics = []
     sentence = []
     videoReader = cv2.VideoCapture(videoPath)
     videoWidth = int(videoReader.get(cv2.CAP_PROP_FRAME_WIDTH))
     videoHeight = int(videoReader.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    videoWriter = cv2.VideoWriter(outputPath, cv2.VideoWriter_fourcc('M', 'P', '4', 'V'), videoReader.get(cv2.CAP_PROP_FPS), (videoWidth, videoHeight))
+    videoWriter = cv2.VideoWriter(
+        outputPath,
+        cv2.VideoWriter_fourcc("M", "P", "4", "V"),
+        videoReader.get(cv2.CAP_PROP_FPS),
+        (videoWidth, videoHeight),
+    )
     framesQueue = deque(maxlen=SEQUENCE_LENGTH)
-    predictedClass = ''
-    predictedProbabilities = ''
+    predictedClass = ""
+    predictedProbabilities = ""
 
     while videoReader.isOpened():
         ok, frame = videoReader.read()
@@ -86,33 +90,39 @@ def predictVideo(videoPath, outputPath, SEQUENCE_LENGTH):
         framesQueue.append(normalizedFrame)
 
         if len(framesQueue) == SEQUENCE_LENGTH:
-            predictedProbabilities = model.predict(
-                np.expand_dims(framesQueue, axis=0))[0]
+            predictedProbabilities = model.predict(np.expand_dims(framesQueue, axis=0))[
+                0
+            ]
             predictedLabel = np.argmax(predictedProbabilities)
             predictedClass = CLASSES_LIST[predictedLabel]
             classProbability = predictedProbabilities[predictedLabel]
             _object = {}
-            _object[predictedClass]= float(classProbability)
+            _object[predictedClass] = float(classProbability)
             sentence.append(_object)
-        cv2.putText(frame, predictedClass, (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(
+            frame, predictedClass, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2
+        )
         videoWriter.write(frame)
     videoWriter.release()
     videoWriter.release()
     print(sentence)
     return sentence
 
-output_video_file_path =  f'/content/drive/MyDrive/KSL/TaggedVideo/hr_flip_v_051_from.mp4'
-input_video_file_path =  f'/content/drive/MyDrive/KSL/TaggedVideo/cnjfopifwVIfklflkD-202ffkleflk30905_home.mp4'
+
+output_video_file_path = (
+    f"/content/drive/MyDrive/KSL/TaggedVideo/hr_flip_v_051_from.mp4"
+)
+input_video_file_path = f"/content/drive/MyDrive/KSL/TaggedVideo/cnjfopifwVIfklflkD-202ffkleflk30905_home.mp4"
 
 # Perform Action Recognition on the Test Video.
 # predictVideo(input_video_file_path, output_video_file_path, SEQUENCE_LENGTH)
 
-app = Flask(__name__,static_folder=templates_dir, static_url_path='/')
+app = Flask(__name__, static_folder=templates_dir, static_url_path="/")
 app.secret_key = "secret key"
-app.config['UPLOAD_FOLDER'] = upload_folder
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config["UPLOAD_FOLDER"] = upload_folder
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 CORS(app)
+
 
 def predict_on_video(video_file_path, output_file_path):
     # Load LRCN model
@@ -123,11 +133,16 @@ def predict_on_video(video_file_path, output_file_path):
     frame_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = video_reader.get(cv2.CAP_PROP_FPS)
-    video_writer = cv2.VideoWriter(output_file_path, cv2.VideoWriter_fourcc('M', 'P', '4', 'V'), fps, (frame_width, frame_height))
+    video_writer = cv2.VideoWriter(
+        output_file_path,
+        cv2.VideoWriter_fourcc("M", "P", "4", "V"),
+        fps,
+        (frame_width, frame_height),
+    )
 
     # Prepare to collect frames
     frames_queue = deque(maxlen=SEQUENCE_LENGTH)
-    predicted_class_name = ''
+    predicted_class_name = ""
 
     while video_reader.isOpened():
         ret, frame = video_reader.read()
@@ -147,56 +162,79 @@ def predict_on_video(video_file_path, output_file_path):
             predicted_class_name = CLASSES_LIST[predicted_class]
 
         # Overlay text on the frame
-        cv2.putText(frame, predicted_class_name, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(
+            frame,
+            predicted_class_name,
+            (10, 30),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            2,
+        )
         video_writer.write(frame)
 
     # Clean up
     video_reader.release()
     video_writer.release()
 
+
 # Example usage
 
-testVideo =  f'/content/drive/MyDrive/KSL/Classes/home/crop_VID20231027182812_home.mp4'
-result =  f'/content/drive/MyDrive/KSL/result.mp4'
-predict_on_video(testVideo,result)
+testVideo = f"/content/drive/MyDrive/KSL/Classes/home/crop_VID20231027182812_home.mp4"
+result = f"/content/drive/MyDrive/KSL/result.mp4"
+predict_on_video(testVideo, result)
 
 from google.colab.output import eval_js
+
 print(eval_js("google.colab.kernel.proxyPort(5000)"))
 
-# Commented out IPython magic to ensure Python compatibility.
-# %%capture
-# @app.route("/")
-# def index():
-# 	return app.send_static_file('index.html')
-# 
-# @app.route("/upload", methods=['POST'])
-# @cross_origin()
-# def upload_video():
-# 	file_to_upload = request.files['file']
-# 	filename = secure_filename(file_to_upload.filename)
-# 	print(filename)
-# 	if filename != '':
-# 		unq_id = uuid.uuid1()
-# 		file_to_upload.filename = str(unq_id) + '_'+ filename
-# 		# Save to drive
-# 		file_to_upload.save(os.path.join(upload_folder, file_to_upload.filename))
-# 	  #upload to cloudinary
-# 		# Set the asset's public ID and allow overwriting the asset with new versions
-# 		upload_response = cloudinary.uploader.upload(os.path.join(upload_folder, file_to_upload.filename), resource_type = "video", public_id=file_to_upload.filename, unique_filename = False, overwrite=True)
-# 		results = {'fileName': file_to_upload.filename, "srcURL": upload_response}
-# 		return jsonify(results)
-# 
-# @app.route("/predict", methods=['POST'])
-# def predict():
-# 	content_type = request.headers.get('Content-Type')
-# 	if(content_type == 'application/json'):
-# 		request_data = request.get_json()
-# 		file_name = request_data['fileName']
-# 		predictions = predictVideo(os.path.join(upload_folder, file_name), os.path.join(upload_folder, 'predition.mp4'), SEQUENCE_LENGTH)
-# 		filtered_data = filter_dicts_by_previous_key(predictions)
-# 		print(filtered_data)
-# 		return jsonify(filtered_data)
-# 	else:
-# 		return 'Content-Type not supported!'
-# if __name__ == "__main__":
-# 	app.run()
+
+@app.route("/")
+def index():
+    return app.send_static_file("index.html")
+
+
+@app.route("/upload", methods=["POST"])
+@cross_origin()
+def upload_video():
+    file_to_upload = request.files["file"]
+    filename = secure_filename(file_to_upload.filename)
+    print(filename)
+    if filename != "":
+        unq_id = uuid.uuid1()
+        file_to_upload.filename = str(unq_id) + "_" + filename
+        # Save to drive
+        file_to_upload.save(os.path.join(upload_folder, file_to_upload.filename))
+        # upload to cloudinary
+        # Set the asset's public ID and allow overwriting the asset with new versions
+        upload_response = cloudinary.uploader.upload(
+            os.path.join(upload_folder, file_to_upload.filename),
+            resource_type="video",
+            public_id=file_to_upload.filename,
+            unique_filename=False,
+            overwrite=True,
+        )
+        results = {"fileName": file_to_upload.filename, "srcURL": upload_response}
+        return jsonify(results)
+
+
+@app.route("/predict", methods=["POST"])
+def predict():
+    content_type = request.headers.get("Content-Type")
+    if content_type == "application/json":
+        request_data = request.get_json()
+        file_name = request_data["fileName"]
+        predictions = predictVideo(
+            os.path.join(upload_folder, file_name),
+            os.path.join(upload_folder, "predition.mp4"),
+            SEQUENCE_LENGTH,
+        )
+        filtered_data = filter_dicts_by_previous_key(predictions)
+        print(filtered_data)
+        return jsonify(filtered_data)
+    else:
+        return "Content-Type not supported!"
+
+
+if __name__ == "__main__":
+    app.run()
